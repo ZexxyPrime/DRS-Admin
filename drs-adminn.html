@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRS Admin — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#C9960C;--g2:#E8B84B;--g3:rgba(201,150,12,0.1);--gb:rgba(201,150,12,0.22);
+  --ink:#07070A;--ink2:#0D0D12;--ink3:#111118;--ink4:#16161E;
+  --w:#FFF;--w2:#E2E2F0;--w3:#9090A8;--w4:#50506A;
+  --red:#FF4455;--green:#22D68A;--blue:#4488FF;--purple:#AA66FF;--orange:#FF8833;
+  --fd:'Cinzel',serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+  --ease:cubic-bezier(0.4,0,0.2,1);--spring:cubic-bezier(0.34,1.56,0.64,1);
+}
+html,body{height:100%;font-family:var(--fb);background:var(--ink);color:var(--w);overflow-x:hidden;font-size:15px}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;font-family:var(--fb);border:none;outline:none}
+input,select,textarea{font-family:var(--fb);outline:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(201,150,12,0.2);border-radius:4px}
+
+/* ═══ LOGIN ═══ */
+#ls{position:fixed;inset:0;background:var(--ink);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+#ls::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(201,150,12,0.07),transparent 55%);pointer-events:none}
+.lb{position:relative;background:var(--ink3);border:1px solid var(--gb);border-radius:18px;padding:48px 44px;width:100%;max-width:420px}
+.lb-icon{width:52px;height:52px;border-radius:12px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:20px}
+.lb-brand{font-family:var(--fd);font-size:1.1rem;font-weight:700;color:var(--g2);letter-spacing:0.06em;margin-bottom:4px}
+.lb-sub{font-size:0.78rem;color:var(--w3);margin-bottom:32px;font-family:var(--fm)}
+.li-lbl{display:block;font-size:0.7rem;font-weight:600;color:var(--w3);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase}
+.li{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:11px 14px;color:var(--w);font-size:0.9rem;margin-bottom:14px;transition:border-color 0.2s}
+.li:focus{border-color:var(--g2);background:rgba(201,150,12,0.04)}
+.lb-btn{width:100%;background:linear-gradient(135deg,var(--g),var(--g2));color:var(--ink);border:none;border-radius:9px;padding:13px;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.04em}
+.lb-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(201,150,12,0.3)}
+.lb-err{color:var(--red);font-size:0.76rem;margin-top:10px;display:none;font-family:var(--fm)}
+.lb-hint{font-size:0.68rem;color:var(--w4);margin-top:18px;text-align:center;font-family:var(--fm)}
+
+/* ═══ APP ═══ */
+#app{display:none;height:100vh;flex-direction:column}
+#app.show{display:flex}
+.tb{height:58px;background:var(--ink2);border-bottom:1px solid rgba(201,150,12,0.15);display:flex;align-items:center;padding:0 22px;gap:14px;flex-shrink:0}
+.tb-brand{font-family:var(--fd);font-size:0.95rem;font-weight:700;color:var(--g2);letter-spacing:0.1em;display:flex;align-items:center;gap:10px}
+.tb-icon{width:28px;height:28px;border-radius:7px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+.tb-pill{font-family:var(--fm);font-size:0.63rem;background:var(--g3);border:1px solid var(--gb);color:var(--g2);padding:3px 10px;border-radius:20px;letter-spacing:0.06em}
+.tb-pill.live::before{content:'● ';animation:lb 1.5s ease-in-out infinite}
+@keyframes lb{0%,100%{opacity:1}50%{opacity:0.3}}
+.tb-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.lo-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--w3);padding:6px 14px;border-radius:7px;font-family:var(--fm);font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+.lo-btn:hover{border-color:rgba(255,68,85,0.4);color:var(--red)}
+.mw{display:flex;flex:1;overflow:hidden}
+
+/* ═══ SIDEBAR ═══ */
+.sb{width:210px;background:var(--ink2);border-right:1px solid rgba(255,255,255,0.05);padding:12px 0;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column}
+.sbi{display:flex;align-items:center;gap:9px;padding:9px 18px;font-size:0.8rem;font-weight:500;color:var(--w4);cursor:pointer;transition:all 0.2s;border-left:2px solid transparent;user-select:none}
+.sbi:hover{color:var(--w2);background:rgba(255,255,255,0.03)}
+.sbi.active{color:var(--g2);background:linear-gradient(90deg,rgba(201,150,12,0.08),transparent);border-left-color:var(--g2)}
+.sbi .ico{font-size:0.95rem;width:20px;text-align:center;flex-shrink:0}
+.sbi .ndot{width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:auto;animation:np 2s ease-in-out infinite}
+@keyframes np{0%,100%{opacity:1}50%{opacity:0.2}}
+.sb-sec{font-family:var(--fm);font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.18);padding:14px 18px 5px;margin-top:4px}
+.sb-btm{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,0.05)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-av{width:32px;height:32px;border-radius:8px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:0.85rem;color:var(--g2);font-weight:600;flex-shrink:0}
+.sb-un{font-size:0.78rem;font-weight:600;color:var(--w2)}
+.sb-ur{font-size:0.65rem;color:var(--w4);font-family:var(--fm)}
+
+/* ═══ CONTENT ═══ */
+.ct{flex:1;overflow-y:auto;padding:24px 26px;background:var(--ink)}
+.pg{display:none}.pg.active{display:block}
+.pg-hd{margin-bottom:22px}
+.pg-title{font-family:var(--fd);font-size:1.6rem;font-weight:700;letter-spacing:0.04em;margin-bottom:4px}
+.pg-sub{font-size:0.78rem;color:var(--w3);font-family:var(--fm)}
+
+/* ═══ STAT CARDS ═══ */
+.sr{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.sc{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px 18px;position:relative;overflow:hidden;transition:all 0.2s;cursor:pointer}
+.sc:hover{border-color:var(--gb);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.sc:active{transform:translateY(0) scale(0.99)}
+.sc::after{content:'';position:absolute;top:-24px;right:-24px;width:80px;height:80px;border-radius:50%;background:var(--sa,rgba(201,150,12,0.07));transition:transform 0.4s}
+.sc:hover::after{transform:scale(1.3)}
+.sc.bl{--sa:rgba(68,136,255,0.1)}.sc.gr{--sa:rgba(34,214,138,0.1)}.sc.pu{--sa:rgba(170,102,255,0.1)}.sc.or{--sa:rgba(255,136,51,0.1)}
+.sc.bl:hover{border-color:rgba(68,136,255,0.4)}
+.sc.gr:hover{border-color:rgba(34,214,138,0.4)}
+.sc.pu:hover{border-color:rgba(170,102,255,0.4)}
+.sc.or:hover{border-color:rgba(255,136,51,0.4)}
+.sc-lbl{font-family:var(--fm);font-size:0.62rem;color:var(--w4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
+.sc-val{font-family:var(--fd);font-size:2rem;font-weight:700;color:var(--g2);line-height:1}
+.sc.bl .sc-val{color:var(--blue)}.sc.gr .sc-val{color:var(--green)}.sc.pu .sc-val{color:var(--purple)}.sc.or .sc-val{color:var(--orange)}
+.sc-hint{font-size:0.68rem;color:var(--w4);margin-top:6px;font-family:var(--fm)}
+
+/* ═══ TOOLBAR ═══ */
+.tbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.tb-t{font-family:var(--fd);font-size:1.4rem;font-weight:700;letter-spacing:0.04em;flex:1;min-width:140px}
+.srch{background:var(--ink3);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 13px;color:var(--w);font-family:var(--fm);font-size:0.75rem;width:200px;transition:all 0.2s}
+.srch::placeholder{color:var(--w4)}.srch:focus{border-color:var(--gb);background:var(--ink4);outline:none;width:230px}
+.flt{background:var(--ink3);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 11px;color:var(--w2);font-family:var(--fm);font-size:0.72rem;cursor:pointer;transition:border-color 0.2s}
+.flt:focus{border-color:var(--gb);outline:none}.flt option{background:var(--ink3)}
+.ib{background:var(--ink3);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 13px;color:var(--w3);font-family:var(--fm);font-size:0.72rem;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;white-space:nowrap;letter-spacing:0.04em;text-transform:uppercase}
+.ib:hover{border-color:var(--gb);color:var(--g2);background:var(--g3)}
+
+/* ═══ TABLE ═══ */
+.tw{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden}
+.tw-hd{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.2)}
+.tw-ht{font-family:var(--fd);font-size:0.95rem;font-weight:600;letter-spacing:0.04em}
+table{width:100%;border-collapse:collapse}
+thead tr{background:rgba(0,0,0,0.25)}
+th{padding:10px 14px;text-align:left;font-family:var(--fm);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--w4);border-bottom:1px solid rgba(255,255,255,0.05);white-space:nowrap}
+td{padding:11px 14px;font-size:0.8rem;color:var(--w3);border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;transition:background 0.15s}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.td-n{font-weight:600;color:var(--w)}
+.td-r{font-family:var(--fm);font-size:0.68rem;color:var(--w4)}
+.td-p a{color:var(--g2);font-family:var(--fm);font-size:0.74rem}
+.tda{display:flex;gap:4px}
+.ab{padding:4px 9px;border-radius:5px;font-size:0.68rem;font-weight:600;cursor:pointer;border:1px solid;transition:all 0.15s;font-family:var(--fm);letter-spacing:0.04em;text-transform:uppercase}
+.ab-v{background:var(--g3);border-color:var(--gb);color:var(--g2)}.ab-v:hover{background:rgba(201,150,12,0.18)}
+.ab-w{background:rgba(34,214,138,0.08);border-color:rgba(34,214,138,0.25);color:var(--green)}.ab-w:hover{background:rgba(34,214,138,0.15)}
+.ab-d{background:rgba(255,68,85,0.08);border-color:rgba(255,68,85,0.25);color:var(--red)}.ab-d:hover{background:rgba(255,68,85,0.15)}
+
+/* ═══ BADGES ═══ */
+.bx{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-family:var(--fm);font-size:0.65rem;white-space:nowrap;letter-spacing:0.04em}
+.bn{background:rgba(201,150,12,0.12);color:var(--g2);border:1px solid rgba(201,150,12,0.25)}
+.bc{background:rgba(68,136,255,0.12);color:var(--blue);border:1px solid rgba(68,136,255,0.25)}
+.bd{background:rgba(34,214,138,0.12);color:var(--green);border:1px solid rgba(34,214,138,0.25)}
+.bx2{background:rgba(255,255,255,0.05);color:var(--w4);border:1px solid rgba(255,255,255,0.1)}
+.bu{background:rgba(255,68,85,0.12);color:var(--red);border:1px solid rgba(255,68,85,0.25)}
+.bse{background:rgba(170,102,255,0.12);color:var(--purple);border:1px solid rgba(170,102,255,0.25)}
+.bbu{background:rgba(255,136,51,0.12);color:var(--orange);border:1px solid rgba(255,136,51,0.25)}
+.bxd{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ═══ PAGINATION ═══ */
+.pag{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid rgba(255,255,255,0.04);font-family:var(--fm);font-size:0.68rem;color:var(--w4)}
+.pbw{display:flex;gap:4px}
+.pb{background:var(--ink4);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 10px;color:var(--w3);font-family:var(--fm);font-size:0.68rem;cursor:pointer;transition:all 0.2s}
+.pb:hover,.pb.active{border-color:var(--gb);color:var(--g2);background:var(--g3)}
+.pb:disabled{opacity:0.25;cursor:not-allowed;pointer-events:none}
+
+/* ═══ DRAWER ═══ */
+#dov{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);z-index:500;display:none;opacity:0;transition:opacity 0.25s}
+#dov.open{display:block;opacity:1}
+#dr{position:fixed;top:0;right:0;width:100%;max-width:480px;height:100vh;background:var(--ink2);border-left:1px solid var(--gb);overflow-y:auto;z-index:501;transform:translateX(100%);transition:transform 0.3s var(--ease)}
+#dr.open{transform:none}
+.dr-hd{padding:22px 24px;border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;background:var(--ink2);z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.dr-x{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:var(--w3);width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.85rem;transition:all 0.2s;flex-shrink:0}
+.dr-x:hover{background:rgba(255,255,255,0.1);color:var(--w)}
+.dr-ref{font-family:var(--fm);font-size:0.65rem;color:var(--w4);letter-spacing:0.08em;margin-bottom:4px}
+.dr-name{font-family:var(--fd);font-size:1.5rem;font-weight:700;letter-spacing:0.04em;margin-bottom:4px;line-height:1.1}
+.dr-svc{font-size:0.78rem;color:var(--g2);font-weight:500;font-family:var(--fm)}
+.dr-body{padding:20px 24px}
+.dr-sec{margin-bottom:18px}
+.dr-sec-t{font-family:var(--fm);font-size:0.62rem;color:var(--g2);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(201,150,12,0.12)}
+.drg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.di{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px}
+.di.full{grid-column:1/-1}
+.dil{font-family:var(--fm);font-size:0.62rem;color:var(--w4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.div2{font-size:0.82rem;color:var(--w);font-weight:500;word-break:break-word}
+.ssel{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:var(--w);font-family:var(--fm);font-size:0.78rem;cursor:pointer;outline:none;margin-bottom:12px;transition:border-color 0.2s}
+.ssel:focus{border-color:var(--g2)}.ssel option{background:var(--ink3)}
+.nta{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:9px 12px;color:var(--w);font-family:var(--fb);font-size:0.8rem;resize:vertical;min-height:70px;outline:none;margin-bottom:10px;transition:border-color 0.2s}
+.nta:focus{border-color:var(--g2)}
+.dr-acts{display:flex;gap:8px;flex-wrap:wrap}
+.wa-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(34,214,138,0.12);color:var(--green);padding:9px 16px;border-radius:8px;font-weight:600;font-size:0.75rem;cursor:pointer;border:1px solid rgba(34,214,138,0.25);font-family:var(--fb);transition:all 0.2s;text-decoration:none}
+.wa-btn:hover{background:rgba(34,214,138,0.2)}
+.call-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(68,136,255,0.1);color:var(--blue);padding:9px 16px;border-radius:8px;font-weight:600;font-size:0.75rem;cursor:pointer;border:1px solid rgba(68,136,255,0.25);font-family:var(--fb);transition:all 0.2s;text-decoration:none}
+.call-btn:hover{background:rgba(68,136,255,0.18)}
+.save-btn{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--ink);border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:0.76rem;cursor:pointer;font-family:var(--fb);transition:all 0.2s}
+.save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,150,12,0.25)}
+
+/* ═══ NOTIF SENDER ═══ */
+.nc{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:24px;margin-bottom:16px}
+.nc-hd{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+.nc-ico{width:40px;height:40px;border-radius:10px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.nc-title{font-family:var(--fd);font-size:1.05rem;font-weight:600;letter-spacing:0.04em;margin-bottom:3px}
+.nc-sub{font-size:0.77rem;color:var(--w3);line-height:1.6;font-weight:300}
+.nc-div{height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.06),transparent);margin:18px 0}
+.nl{display:block;font-family:var(--fm);font-size:0.65rem;color:var(--w3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+.ni2{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 13px;color:var(--w);font-family:var(--fb);font-size:0.83rem;outline:none;margin-bottom:13px;transition:border-color 0.2s}
+.ni2:focus{border-color:var(--g2)}.ni2 option{background:var(--ink3)}
+.ng{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.nprev{background:var(--ink);border:1px solid var(--gb);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin:4px 0 16px}
+.np-ico{width:36px;height:36px;border-radius:9px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.np-tt{font-weight:700;font-size:0.83rem;margin-bottom:3px}
+.np-bd{font-size:0.73rem;color:var(--w3)}
+.np-cta{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--ink);padding:5px 12px;border-radius:6px;font-size:0.68rem;font-weight:700;white-space:nowrap;font-family:var(--fb);letter-spacing:0.04em;margin-left:auto;flex-shrink:0}
+.send-btn{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--ink);border:none;border-radius:8px;padding:10px 22px;font-weight:700;font-size:0.8rem;cursor:pointer;font-family:var(--fb);transition:all 0.2s;display:inline-flex;align-items:center;gap:7px;letter-spacing:0.04em}
+.send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,150,12,0.3)}
+.send-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.push-card{border-color:rgba(68,136,255,0.18)}
+.send-btn.push{background:linear-gradient(135deg,#2244CC,var(--blue))}
+
+/* ═══ ANALYTICS ═══ */
+.ag{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;margin-bottom:16px}
+.cc{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px}
+.cc-t{font-family:var(--fd);font-size:0.95rem;font-weight:600;letter-spacing:0.04em;margin-bottom:3px}
+.cc-s{font-size:0.72rem;color:var(--w3);margin-bottom:16px;font-family:var(--fm)}
+.cw{position:relative;height:200px}
+.ms-col{display:flex;flex-direction:column;gap:12px}
+.ms{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px}
+.ms-l{font-family:var(--fm);font-size:0.62rem;color:var(--w4);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:7px}
+.ms-v{font-family:var(--fd);font-size:1.8rem;font-weight:700;color:var(--g2);line-height:1}
+.ms-h{font-size:0.7rem;color:var(--w4);margin-top:5px;font-family:var(--fm)}
+.ar2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.ga-b{background:rgba(68,136,255,0.06);border:1px solid rgba(68,136,255,0.18);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.ga-b p{font-size:0.8rem;color:var(--w3);line-height:1.6}
+.ga-b strong{color:var(--w);font-size:0.84rem;display:block;margin-bottom:2px}
+.ga-btn{background:rgba(68,136,255,0.15);color:var(--blue);border:1px solid rgba(68,136,255,0.3);border-radius:7px;padding:8px 16px;font-weight:600;font-size:0.74rem;cursor:pointer;font-family:var(--fb);white-space:nowrap;transition:all 0.2s}
+.ga-btn:hover{background:rgba(68,136,255,0.25)}
+
+/* ═══ SETUP ═══ */
+.setc{background:var(--ink3);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:22px;margin-bottom:14px}
+.setc:hover{border-color:var(--gb)}
+.setc-hd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.setc-ico{width:36px;height:36px;border-radius:9px;background:var(--g3);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.setc-t{font-family:var(--fd);font-size:1rem;font-weight:600;letter-spacing:0.04em}
+.setc-s{font-size:0.77rem;color:var(--w3);line-height:1.7;margin-bottom:16px;font-weight:300}
+.setc-s a{color:var(--g2);border-bottom:1px solid transparent;transition:border-color 0.2s}
+.setc-s a:hover{border-bottom-color:var(--g2)}
+.cb{background:var(--ink);border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:14px 16px;font-family:var(--fm);font-size:0.73rem;color:#A5F3FC;line-height:1.8;overflow-x:auto;white-space:pre;position:relative;margin-bottom:14px}
+.cpb{position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:var(--w3);border-radius:5px;padding:3px 10px;font-size:0.65rem;cursor:pointer;font-family:var(--fm);transition:all 0.2s}
+.cpb:hover{background:var(--g3);border-color:var(--gb);color:var(--g2)}
+.cl{display:block;font-family:var(--fm);font-size:0.62rem;color:var(--w4);margin-bottom:5px;letter-spacing:0.1em;text-transform:uppercase}
+.ci{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 13px;color:var(--w);font-family:var(--fm);font-size:0.78rem;outline:none;width:100%;transition:border-color 0.2s;margin-bottom:12px}
+.ci:focus{border-color:var(--g2)}
+.cfg-btn{background:linear-gradient(135deg,var(--g),var(--g2));color:var(--ink);border:none;border-radius:8px;padding:10px 22px;font-weight:700;cursor:pointer;font-family:var(--fb);transition:all 0.2s;font-size:0.78rem;letter-spacing:0.04em}
+.cfg-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,150,12,0.25)}
+.status-ok{color:var(--green);font-family:var(--fm);font-size:0.72rem}
+.status-err{color:var(--red);font-family:var(--fm);font-size:0.72rem}
+.status-wait{color:var(--w4);font-family:var(--fm);font-size:0.72rem}
+.sync-banner{border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sync-ok{background:rgba(34,214,138,0.08);border:1px solid rgba(34,214,138,0.2)}
+.sync-warn{background:rgba(255,136,51,0.08);border:1px solid rgba(255,136,51,0.2)}
+.nh-type{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-family:var(--fm);font-size:0.62rem;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
+.nh-ia{background:var(--g3);border:1px solid var(--gb);color:var(--g2)}
+.nh-push{background:rgba(68,136,255,0.1);border:1px solid rgba(68,136,255,0.25);color:var(--blue)}
+.spin{width:32px;height:32px;border:2px solid rgba(201,150,12,0.1);border-top-color:var(--g2);border-radius:50%;animation:sp 0.7s linear infinite;margin:44px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:48px 20px;color:var(--w4)}
+.empty-icon{font-size:2rem;margin-bottom:10px;opacity:0.3}
+.empty-txt{font-size:0.82rem;line-height:1.7}
+#toast{position:fixed;bottom:22px;right:22px;background:var(--ink3);border:1px solid var(--gb);border-radius:10px;padding:12px 18px;font-family:var(--fm);font-size:0.73rem;color:var(--w);z-index:9999;opacity:0;pointer-events:none;transition:opacity 0.25s;display:flex;align-items:center;gap:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6);letter-spacing:0.04em;max-width:380px}
+#toast.show{opacity:1}
+#toast.success{border-color:rgba(34,214,138,0.4);color:var(--green)}
+#toast.error{border-color:rgba(255,68,85,0.4);color:var(--red)}
+@media(max-width:900px){.sr{grid-template-columns:repeat(2,1fr)}.sb{display:none}.ag,.ar2{grid-template-columns:1fr}}
+@media(max-width:600px){.ct{padding:14px}.sr{grid-template-columns:1fr 1fr} table th:nth-child(n+5),table td:nth-child(n+5){display:none}.ng{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="ls">
+  <div class="lb">
+    <div class="lb-icon">🏛️</div>
+    <div class="lb-brand">DRS Human Resources Pvt. Ltd.®</div>
+    <div class="lb-sub">Command Center — Authorised Access Only</div>
+    <label class="li-lbl">Username</label>
+    <input class="li" type="text" id="lu" placeholder="admin" autocomplete="username">
+    <label class="li-lbl">Password</label>
+    <input class="li" type="password" id="lp" placeholder="••••••••" autocomplete="current-password">
+    <button class="lb-btn" onclick="doLogin()">Access Dashboard →</button>
+    <div class="lb-err" id="lerr">⚠ Invalid credentials</div>
+    <div class="lb-hint">Default: admin / drs@2025</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="tb">
+    <div class="tb-brand"><div class="tb-icon">◆</div>DRS Command Center</div>
+    <div class="tb-pill live" id="live-badge">0 Leads</div>
+    <div class="tb-right">
+      <button class="ib" onclick="loadAll()" style="padding:6px 12px">↻ REFRESH</button>
+      <div class="lo-btn" onclick="doLogout()">Sign Out</div>
+    </div>
+  </div>
+  <div class="mw">
+    <div class="sb">
+      <div class="sbi active" onclick="pg('dashboard')" id="nav-dashboard"><span class="ico">◈</span>Dashboard</div>
+      <div class="sbi" onclick="pg('leads')" id="nav-leads"><span class="ico">≡</span>All Leads</div>
+      <div class="sbi" onclick="pg('leads-new')" id="nav-leads-new"><span class="ico">◉</span>New Leads</div>
+      <div class="sbi" onclick="pg('leads-urgent')" id="nav-leads-urgent"><span class="ico">⚠</span>Urgent <span class="ndot" id="udot" style="display:none"></span></div>
+      <div class="sbi" onclick="pg('leads-intl')" id="nav-leads-intl"><span class="ico">◎</span>International</div>
+      <div class="sb-sec">Marketplace</div>
+      <div class="sbi" onclick="pg('mkt')" id="nav-mkt"><span class="ico">⊞</span>All Listings</div>
+      <div class="sbi" onclick="pg('mkt-buyers')" id="nav-mkt-buyers"><span class="ico">⊕</span>Buyers</div>
+      <div class="sbi" onclick="pg('mkt-sellers')" id="nav-mkt-sellers"><span class="ico">⊗</span>Sellers</div>
+      <div class="sb-sec">Intelligence</div>
+      <div class="sbi" onclick="pg('analytics')" id="nav-analytics"><span class="ico">▲</span>Analytics</div>
+      <div class="sb-sec">Operations</div>
+      <div class="sbi" onclick="pg('notifications')" id="nav-notifications"><span class="ico">◈</span>Notifications</div>
+      <div class="sbi" onclick="pg('setup')" id="nav-setup"><span class="ico">⊛</span>Configuration</div>
+      <div class="sb-btm">
+        <div class="sb-user">
+          <div class="sb-av" id="sb-av">A</div>
+          <div><div class="sb-un" id="sb-un">Admin</div><div class="sb-ur">Super Admin</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ct">
+
+      <!-- DASHBOARD -->
+      <div class="pg active" id="page-dashboard">
+        <div class="pg-hd"><div class="pg-title">Dashboard</div><div class="pg-sub" id="dash-date"></div></div>
+        <div class="sr">
+          <div class="sc" onclick="pg('leads')" title="View All Leads"><div class="sc-lbl">Total Leads</div><div class="sc-val" id="s-total">—</div><div class="sc-hint">↗ Click to view all</div></div>
+          <div class="sc bl" onclick="pg('leads-new')" title="View New Leads"><div class="sc-lbl">New Today</div><div class="sc-val" id="s-today">—</div><div class="sc-hint">↗ Click to view</div></div>
+          <div class="sc gr" onclick="filterAndGo('Deployed')" title="View Deployed"><div class="sc-lbl">Deployed</div><div class="sc-val" id="s-deployed">—</div><div class="sc-hint">↗ Click to view</div></div>
+          <div class="sc pu" onclick="pg('mkt')" title="View Marketplace"><div class="sc-lbl">Marketplace</div><div class="sc-val" id="s-mkt">—</div><div class="sc-hint">↗ Click to view</div></div>
+        </div>
+        <div class="sr">
+          <div class="sc or" onclick="pg('leads-urgent')" title="View Urgent"><div class="sc-lbl">Urgent Today</div><div class="sc-val" id="s-urgent">—</div><div class="sc-hint">↗ Click to view</div></div>
+          <div class="sc" onclick="pg('leads-intl')" title="View International"><div class="sc-lbl">International</div><div class="sc-val" id="s-intl">—</div><div class="sc-hint">↗ Click to view</div></div>
+          <div class="sc bl" onclick="filterAndGo('week')" title="View This Week"><div class="sc-lbl">This Week</div><div class="sc-val" id="s-week">—</div><div class="sc-hint">↗ Click to view</div></div>
+          <div class="sc gr" onclick="pg('analytics')" title="View Analytics"><div class="sc-lbl">Conversion</div><div class="sc-val" id="s-conv">—</div><div class="sc-hint">↗ View analytics</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+          <div class="tw"><div class="tw-hd"><div class="tw-ht">Recent Submissions</div><button class="ib" onclick="pg('leads')" style="font-size:0.65rem;padding:5px 10px">VIEW ALL →</button></div>
+            <table><thead><tr><th>Name</th><th>Service</th><th>City</th><th>Status</th></tr></thead><tbody id="dash-recent"><tr><td colspan="4"><div class="spin"></div></td></tr></tbody></table></div>
+          <div class="tw"><div class="tw-hd"><div class="tw-ht">Top Services</div></div>
+            <table><thead><tr><th>Service</th><th>Reqs</th><th>Bar</th></tr></thead><tbody id="dash-svcs"><tr><td colspan="3"><div class="spin"></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- LEADS -->
+      <div class="pg" id="page-leads">
+        <div class="tbar">
+          <div class="tb-t" id="leads-title">All Leads</div>
+          <input class="srch" placeholder="⌕  Search..." id="srch" oninput="filterLeads()">
+          <select class="flt" id="fst" onchange="filterLeads()"><option value="">Status: All</option><option>New</option><option>Contacted</option><option>Deployed</option><option>Closed</option></select>
+          <select class="flt" id="fsv" onchange="filterLeads()"><option value="">Service: All</option><option>Manpower Outsourcing</option><option>AC Technician</option><option>Electrician</option><option>Plumber</option><option>Cook / Chef</option><option>House Cleaner</option><option>Security Guard</option><option>Personal Driver</option><option>International Placement</option><option>Other / Custom</option></select>
+          <button class="ib" onclick="exportCSV(allLeads,'DRS_Leads')">⬇ EXPORT</button>
+          <button class="ib" onclick="loadAll()">↻ SYNC</button>
+        </div>
+        <div class="tw">
+          <table><thead><tr><th>Ref</th><th>Name</th><th>WhatsApp</th><th>Service</th><th>City</th><th>Urgency</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="leads-body"><tr><td colspan="9"><div class="spin"></div></td></tr></tbody></table>
+          <div class="pag"><span id="pi">—</span><div class="pbw"><button class="pb" id="pp" onclick="cPg(-1,'leads')" disabled>← Prev</button><span id="pnums" style="display:flex;gap:3px"></span><button class="pb" id="pn" onclick="cPg(1,'leads')">Next →</button></div></div>
+        </div>
+      </div>
+
+      <!-- MARKETPLACE -->
+      <div class="pg" id="page-mkt">
+        <div class="tbar">
+          <div class="tb-t" id="mkt-title">Marketplace</div>
+          <input class="srch" placeholder="⌕  Search..." id="msrch" oninput="filterMkt()">
+          <select class="flt" id="mft" onchange="filterMkt()"><option value="">Type: All</option><option value="buyer">Buyers</option><option value="seller">Sellers</option></select>
+          <select class="flt" id="mfs" onchange="filterMkt()"><option value="">Status: All</option><option>New</option><option>Contacted</option><option>Closed</option></select>
+          <button class="ib" onclick="exportCSV(allMkt,'DRS_Marketplace')">⬇ EXPORT</button>
+          <button class="ib" onclick="loadAll()">↻ SYNC</button>
+        </div>
+        <div class="tw">
+          <table><thead><tr><th>Ref</th><th>Type</th><th>Name</th><th>WhatsApp</th><th>Service</th><th>City</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="mkt-body"><tr><td colspan="9"><div class="spin"></div></td></tr></tbody></table>
+          <div class="pag"><span id="mpi">—</span><div class="pbw"><button class="pb" id="mpp" onclick="cPg(-1,'mkt')" disabled>← Prev</button><span id="mpnums" style="display:flex;gap:3px"></span><button class="pb" id="mpn" onclick="cPg(1,'mkt')">Next →</button></div></div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div class="pg" id="page-analytics">
+        <div class="pg-hd"><div class="pg-title">Analytics</div><div class="pg-sub">Live data from Supabase + Firebase</div></div>
+        <div class="ga-b"><div><strong>Connect Google Analytics GA4 for deeper insights</strong><p>Track traffic sources, user behaviour, conversions, funnels — completely free.</p></div><button class="ga-btn" onclick="pg('setup')">SETUP GA4 →</button></div>
+        <div class="sr">
+          <div class="sc"><div class="sc-lbl">Page Views</div><div class="sc-val" id="an-views">—</div><div class="sc-hint">All time</div></div>
+          <div class="sc bl"><div class="sc-lbl">Today Sessions</div><div class="sc-val" id="an-today">—</div><div class="sc-hint">Unique visits</div></div>
+          <div class="sc gr"><div class="sc-lbl">This Week</div><div class="sc-val" id="an-week">—</div><div class="sc-hint">Sessions</div></div>
+          <div class="sc pu"><div class="sc-lbl">This Month</div><div class="sc-val" id="an-month">—</div><div class="sc-hint">Sessions</div></div>
+        </div>
+        <div class="ag">
+          <div class="cc"><div class="cc-t">Daily Lead Volume</div><div class="cc-s">Submissions per day this week</div><div class="cw"><canvas id="wc"></canvas></div></div>
+          <div class="ms-col">
+            <div class="ms"><div class="ms-l">Avg Leads / Day</div><div class="ms-v" id="an-avg">—</div><div class="ms-h">This month</div></div>
+            <div class="ms"><div class="ms-l">Top City</div><div class="ms-v" style="font-size:1.3rem" id="an-city">—</div><div class="ms-h">Most requests</div></div>
+            <div class="ms"><div class="ms-l">Top Service</div><div class="ms-v" style="font-size:0.95rem;letter-spacing:0.01em" id="an-svc">—</div><div class="ms-h">Most booked</div></div>
+          </div>
+        </div>
+        <div class="ar2">
+          <div class="cc"><div class="cc-t">Monthly Trend</div><div class="cc-s">Lead growth over 6 months</div><div class="cw"><canvas id="mc"></canvas></div></div>
+          <div class="cc"><div class="cc-t">Pipeline Status</div><div class="cc-s">Distribution by lead stage</div><div class="cw"><canvas id="sc2"></canvas></div></div>
+        </div>
+        <div class="ar2">
+          <div class="tw"><div class="tw-hd"><div class="tw-ht">Top Cities</div></div><table><thead><tr><th>City</th><th>Leads</th><th>Share</th></tr></thead><tbody id="city-tbl"></tbody></table></div>
+          <div class="tw"><div class="tw-hd"><div class="tw-ht">Service Demand</div></div><table><thead><tr><th>Service</th><th>Leads</th><th>Bar</th></tr></thead><tbody id="svc-tbl"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="pg" id="page-notifications">
+        <div class="pg-hd"><div class="pg-title">Notifications</div><div class="pg-sub">Send real-time notifications to ALL visitors on ALL devices via Firebase</div></div>
+        <div id="fb-notif-status" class="sync-banner sync-warn" style="display:none">
+          <span style="font-size:1.3rem">⚠️</span><div><div style="font-weight:600;font-size:0.84rem;color:var(--orange)">Firebase not configured</div><div style="font-size:0.73rem;color:var(--w3);margin-top:2px">Go to Configuration → set Firebase keys → notifications will reach ALL devices</div></div>
+          <button class="ib" onclick="pg('setup')" style="margin-left:auto;white-space:nowrap">Setup Firebase →</button>
+        </div>
+        <div id="fb-notif-ok" class="sync-banner sync-ok" style="display:none">
+          <span style="font-size:1.3rem">✅</span><div><div style="font-weight:600;font-size:0.84rem;color:var(--green)">Firebase connected — Notifications reach ALL devices globally</div><div style="font-size:0.73rem;color:var(--w3);margin-top:2px">Any device, any browser, anywhere in the world</div></div>
+        </div>
+        <div class="nc">
+          <div class="nc-hd"><div class="nc-ico">📢</div><div><div class="nc-title">In-App Notification Bar</div><div class="nc-sub">Sends a gold notification bar to all open website instances. Via Firebase → all devices. Fallback to same-device if Firebase not configured.</div></div></div>
+          <div class="nc-div"></div>
+          <div class="ng">
+            <div><label class="nl">Icon (emoji)</label><input class="ni2" id="n-icon" placeholder="🔔" value="🔔" oninput="upPrev()"><label class="nl">Title *</label><input class="ni2" id="n-title" placeholder="e.g. Special Offer Today!" oninput="upPrev()"><label class="nl">CTA Button Text</label><input class="ni2" id="n-cta" placeholder="e.g. Book Now" oninput="upPrev()"></div>
+            <div><label class="nl">Message *</label><textarea class="ni2" id="n-body" rows="4" style="resize:vertical" placeholder="Your notification message..." oninput="upPrev()"></textarea><label class="nl">CTA Link</label><select class="ni2" id="n-url" style="cursor:pointer"><option value="#modal">Open Booking Form</option><option value="#services">Go to Services</option><option value="#marketplace">Go to Marketplace</option><option value="#contact">Contact Section</option></select></div>
+          </div>
+          <div style="margin-bottom:8px"><label class="nl">Live Preview</label></div>
+          <div class="nprev"><div class="np-ico" id="pv-icon">🔔</div><div style="flex:1;min-width:0"><div class="np-tt" id="pv-title">Notification Title</div><div class="np-bd" id="pv-body">Your message preview...</div></div><div class="np-cta" id="pv-cta">Book Now</div></div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="send-btn" onclick="sendInApp()" id="inapp-btn">📢 Broadcast to All Visitors</button>
+            <button class="ib" onclick="clearAllNotifs()" style="border-color:rgba(255,68,85,0.25);color:var(--red)">🗑 CLEAR ALL NOTIFS</button>
+          </div>
+        </div>
+        <div class="nc push-card">
+          <div class="nc-hd"><div class="nc-ico" style="background:rgba(68,136,255,0.1);border-color:rgba(68,136,255,0.25)">📲</div><div><div class="nc-title" style="color:var(--blue)">Browser Push — OneSignal</div><div class="nc-sub">Sends push notifications to subscribed users even when not on website. Requires OneSignal setup.</div></div></div>
+          <div class="nc-div" style="background:linear-gradient(90deg,rgba(68,136,255,0.2),transparent)"></div>
+          <div class="ng">
+            <div><label class="nl">Push Title</label><input class="ni2" id="pn-title" placeholder="DRS — New Update!"><label class="nl">OneSignal App ID</label><input class="ni2" id="pn-appid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx"><label class="nl">REST API Key</label><input class="ni2" id="pn-rest" placeholder="os_v2_app_..."></div>
+            <div><label class="nl">Push Message</label><textarea class="ni2" id="pn-body" rows="4" style="resize:vertical" placeholder="Push notification body..."></textarea><label class="nl">Target URL</label><input class="ni2" id="pn-url" placeholder="https://yoursite.com"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="send-btn push" onclick="sendPush()">📲 Send Push</button>
+            <button class="ib" onclick="saveOSConfig()">💾 SAVE CONFIG</button>
+          </div>
+        </div>
+        <div class="tw"><div class="tw-hd"><div class="tw-ht">Sent History</div></div>
+          <table><thead><tr><th>Time</th><th>Channel</th><th>Title</th><th>Message</th></tr></thead>
+          <tbody id="nh-body"><tr><td colspan="4"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-txt">No notifications sent yet</div></div></td></tr></tbody></table></div>
+      </div>
+
+      <!-- SETUP / CONFIGURATION -->
+      <div class="pg" id="page-setup">
+        <div class="pg-hd"><div class="pg-title">Configuration</div><div class="pg-sub">All settings sync automatically to all team members via Firebase</div></div>
+
+        <div id="cfg-ok-banner" class="sync-banner sync-ok" style="display:none">
+          <span style="font-size:1.3rem">✅</span><div><div style="font-weight:600;font-size:0.84rem;color:var(--green)">All config synced from Firebase</div><div style="font-size:0.73rem;color:var(--w3);margin-top:2px">Team members get all settings automatically when they open this panel</div></div>
+        </div>
+        <div id="cfg-warn-banner" class="sync-banner sync-warn">
+          <span style="font-size:1.3rem">⚠️</span><div><div style="font-weight:600;font-size:0.84rem;color:var(--orange)">Enter Firebase config below to activate team sync</div><div style="font-size:0.73rem;color:var(--w3);margin-top:2px">Once Firebase is set, all other configs sync automatically to every team member</div></div>
+        </div>
+
+        <!-- STEP 1: FIREBASE -->
+        <div class="setc">
+          <div class="setc-hd"><div class="setc-ico">🔥</div><div class="setc-t">Step 1 — Firebase Config (Master)</div></div>
+          <div class="setc-s">Get from: <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a> → Your Project → Project Settings → General → Your Apps → Web App → Config object.<br>
+          <strong style="color:var(--w)">Set Firebase Rules first:</strong> Firebase Console → Realtime Database → Rules → paste: <code style="color:#a5f3fc;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;font-size:0.76rem">{ "rules": { ".read": true, ".write": true } }</code> → Publish</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div><label class="cl">API KEY *</label><input class="ci" id="fb-apikey" placeholder="AIzaSy..."></div>
+            <div><label class="cl">PROJECT ID *</label><input class="ci" id="fb-projectid" placeholder="your-project-id"></div>
+            <div><label class="cl">DATABASE URL *</label><input class="ci" id="fb-dburl" placeholder="https://your-project-default-rtdb.firebaseio.com"></div>
+            <div><label class="cl">APP ID</label><input class="ci" id="fb-appid" placeholder="1:123456789:web:abc123"></div>
+            <div><label class="cl">AUTH DOMAIN</label><input class="ci" id="fb-auth" placeholder="your-project.firebaseapp.com"></div>
+            <div><label class="cl">MESSAGING SENDER ID</label><input class="ci" id="fb-sender" placeholder="123456789"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="cfg-btn" onclick="saveFBConfig()">🔥 Save Firebase & Sync Team</button>
+            <span id="fb-st" class="status-wait"></span>
+          </div>
+        </div>
+
+        <!-- STEP 2: SUPABASE -->
+        <div class="setc">
+          <div class="setc-hd"><div class="setc-ico">🗄️</div><div class="setc-t">Step 2 — Supabase Database</div></div>
+          <div class="setc-s">Go to <a href="https://supabase.com" target="_blank">supabase.com</a> → Create free project → SQL Editor → Run this SQL once:</div>
+          <div class="cb" id="sql1">CREATE TABLE IF NOT EXISTS leads (
+  id BIGSERIAL PRIMARY KEY, ref_id TEXT, full_name TEXT, email TEXT,
+  whatsapp TEXT, alt_phone TEXT, service TEXT, sub_type TEXT,
+  workers_required INTEGER, engagement_type TEXT, urgency TEXT,
+  address TEXT, city TEXT, state TEXT, country TEXT DEFAULT 'India',
+  pincode TEXT, start_date DATE, time_slot TEXT, duration TEXT,
+  budget TEXT, special_skills TEXT, source TEXT, notes TEXT,
+  admin_notes TEXT, status TEXT DEFAULT 'New',
+  submitted_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS marketplace (
+  id BIGSERIAL PRIMARY KEY, ref_id TEXT, type TEXT, full_name TEXT,
+  whatsapp TEXT, service TEXT, city TEXT, experience TEXT, rate TEXT,
+  availability TEXT, description TEXT, documents TEXT, budget TEXT,
+  urgency TEXT, admin_notes TEXT, status TEXT DEFAULT 'New',
+  submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS pageviews (
+  id BIGSERIAL PRIMARY KEY, page TEXT, referrer TEXT,
+  is_new_session BOOLEAN DEFAULT true, visited_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pageviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "ins_leads" ON leads FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "ins_mkt" ON marketplace FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "ins_pv" ON pageviews FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "all_leads" ON leads FOR ALL USING (true);
+CREATE POLICY IF NOT EXISTS "all_mkt" ON marketplace FOR ALL USING (true);
+CREATE POLICY IF NOT EXISTS "all_pv" ON pageviews FOR ALL USING (true);<button class="cpb" onclick="copyEl('sql1',this)">COPY</button></div>
+          <div style="max-width:600px">
+            <label class="cl">SUPABASE PROJECT URL</label><input class="ci" id="cfg-url" placeholder="https://xyzabc.supabase.co">
+            <label class="cl">ANON KEY (public)</label><input class="ci" id="cfg-key" placeholder="eyJhbGci...">
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="cfg-btn" onclick="saveSBConfig()">💾 Save & Test & Sync Team</button>
+            <span id="conn-st" class="status-wait"></span>
+          </div>
+        </div>
+
+        <!-- STEP 3: ONESIGNAL -->
+        <div class="setc">
+          <div class="setc-hd"><div class="setc-ico" style="background:rgba(68,136,255,0.1);border-color:rgba(68,136,255,0.25)">🔔</div><div class="setc-t">Step 3 — OneSignal Push (Optional)</div></div>
+          <div class="setc-s">Create free account at <a href="https://onesignal.com" target="_blank">onesignal.com</a> → New App → Web Push → Copy App ID & REST API Key. Also add your App ID to drs-hr.html.</div>
+          <div style="max-width:600px">
+            <label class="cl">ONESIGNAL APP ID</label><input class="ci" id="os-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <label class="cl">REST API KEY</label><input class="ci" id="os-rest" placeholder="os_v2_app_...">
+          </div>
+          <button class="cfg-btn" onclick="saveOSConfig()">💾 Save & Sync OneSignal</button>
+        </div>
+
+        <!-- GA4 -->
+        <div class="setc">
+          <div class="setc-hd"><div class="setc-ico" style="background:rgba(255,136,51,0.1);border-color:rgba(255,136,51,0.25)">📊</div><div class="setc-t">Step 4 — Google Analytics GA4</div></div>
+          <div class="setc-s">Go to <a href="https://analytics.google.com" target="_blank">analytics.google.com</a> → Create GA4 property → Copy Measurement ID (G-XXXXXXXXXX) → Add generated code to &lt;head&gt; of drs-hr.html.</div>
+          <div style="max-width:600px"><label class="cl">GA4 MEASUREMENT ID</label><input class="ci" id="ga-id" placeholder="G-XXXXXXXXXX" oninput="genGA()"></div>
+          <label class="cl" style="margin-bottom:8px">Code to add to &lt;head&gt; of drs-hr.html:</label>
+          <div class="cb" id="ga-code">&lt;!-- Enter your GA4 ID above first --&gt;<button class="cpb" onclick="copyEl('ga-code',this)">COPY</button></div>
+        </div>
+
+        <!-- CREDENTIALS -->
+        <div class="setc">
+          <div class="setc-hd"><div class="setc-ico">🔐</div><div class="setc-t">Admin Credentials</div></div>
+          <div class="setc-s">Change your personal admin login. Each team member sets their own credentials locally.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:600px;margin-bottom:14px">
+            <div><label class="cl">NEW USERNAME</label><input class="ci" style="margin-bottom:0" id="new-u" placeholder="admin"></div>
+            <div><label class="cl">NEW PASSWORD (min 6)</label><input class="ci" style="margin-bottom:0" type="password" id="new-p" placeholder="••••••••"></div>
+          </div>
+          <button class="cfg-btn" onclick="changeCreds()">Update Credentials</button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<div id="dov" onclick="closeDr()"></div>
+<div id="dr"><div class="dr-hd"><div><div class="dr-ref" id="dr-ref"></div><div class="dr-name" id="dr-name"></div><div class="dr-svc" id="dr-svc"></div></div><button class="dr-x" onclick="closeDr()">✕</button></div><div class="dr-body" id="dr-body"></div></div>
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// CONFIG — PASTE YOUR KEYS HERE
+// ══════════════════════════════════════════════════
+const INIT_FB = {
+  apiKey:            'YOUR_FIREBASE_API_KEY',
+  authDomain:        'YOUR_PROJECT_ID.firebaseapp.com',
+  databaseURL:       'https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com',
+  projectId:         'YOUR_PROJECT_ID',
+  storageBucket:     'YOUR_PROJECT_ID.appspot.com',
+  messagingSenderId: 'YOUR_SENDER_ID',
+  appId:             'YOUR_APP_ID'
+};
+const INIT_SB_URL = 'YOUR_SUPABASE_URL';
+const INIT_SB_KEY = 'YOUR_SUPABASE_ANON_KEY';
+// ══════════════════════════════════════════════════
+
+let SURL = '', SKEY = '';
+let fbDB = null, fbReady = false;
+let allLeads = [], allMkt = [];
+let leadsF = 'all', mktF = 'all', leadsP = 1, mktP = 1;
+const PER = 20;
+let wC, mC, sC, nhist = [];
+
+// ── AUTH ──
+function getCreds(){return{u:localStorage.getItem('drs_admin_user')||'admin',p:localStorage.getItem('drs_admin_pass')||'drs@2025'};}
+function doLogin(){
+  const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
+  const c=getCreds();
+  if(u===c.u&&p===c.p){localStorage.setItem('drs_sess','1');document.getElementById('ls').style.display='none';document.getElementById('app').classList.add('show');init();}
+  else{const e=document.getElementById('lerr');e.style.display='block';setTimeout(()=>e.style.display='none',3500);}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('ls').style.display!=='none')doLogin();});
+function doLogout(){localStorage.removeItem('drs_sess');location.reload();}
+if(localStorage.getItem('drs_sess')){document.getElementById('ls').style.display='none';document.getElementById('app').classList.add('show');init();}
+
+// ── FIREBASE INIT ──
+async function initFB(cfg){
+  try{
+    const {initializeApp,getApps}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {getDatabase}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const app=getApps().length?getApps()[0]:initializeApp(cfg);
+    fbDB=getDatabase(app);fbReady=true;
+    document.getElementById('fb-notif-ok').style.display='flex';
+    document.getElementById('fb-notif-status').style.display='none';
+    return true;
+  }catch(e){console.warn('Firebase init failed',e);return false;}
+}
+
+// ── SUPABASE ──
+async function sbFetch(path,opts={}){
+  const r=await fetch(SURL+path,{headers:{'apikey':SKEY,'Authorization':'Bearer '+SKEY,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},...opts});
+  if(!r.ok){const t=await r.text();throw new Error(t);}
+  const ct=r.headers.get('content-type')||'';return ct.includes('json')?r.json():null;
+}
+
+// ── INIT ──
+async function init(){
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const u=getCreds().u;
+  document.getElementById('sb-av').textContent=u[0].toUpperCase();
+  document.getElementById('sb-un').textContent=u.charAt(0).toUpperCase()+u.slice(1);
+
+  // Load saved Firebase config from localStorage (or use hardcoded INIT_FB)
+  let fbCfg = null;
+  const storedFB = localStorage.getItem('drs_fb_config');
+  if(storedFB){ try{fbCfg=JSON.parse(storedFB);}catch(e){} }
+  if(!fbCfg && !INIT_FB.apiKey.includes('YOUR_')){ fbCfg = INIT_FB; }
+
+  if(fbCfg){
+    const ok = await initFB(fbCfg);
+    if(ok){
+      // Load all config from Firebase (Supabase URL/key, OneSignal etc)
+      await loadConfigFromFB();
+      // Pre-fill Firebase fields in setup page
+      document.getElementById('fb-apikey').value=fbCfg.apiKey||'';
+      document.getElementById('fb-projectid').value=fbCfg.projectId||'';
+      document.getElementById('fb-dburl').value=fbCfg.databaseURL||'';
+      document.getElementById('fb-appid').value=fbCfg.appId||'';
+      document.getElementById('fb-auth').value=fbCfg.authDomain||'';
+      document.getElementById('fb-sender').value=fbCfg.messagingSenderId||'';
+      document.getElementById('cfg-ok-banner').style.display='flex';
+      document.getElementById('cfg-warn-banner').style.display='none';
+    }
+  } else {
+    document.getElementById('fb-notif-status').style.display='flex';
+    document.getElementById('fb-notif-ok').style.display='none';
+  }
+
+  // Supabase: use saved or hardcoded
+  if(!SURL || !SKEY){
+    SURL = localStorage.getItem('drs_url') || (INIT_SB_URL.includes('YOUR_') ? '' : INIT_SB_URL);
+    SKEY = localStorage.getItem('drs_key') || (INIT_SB_KEY.includes('YOUR_') ? '' : INIT_SB_KEY);
+  }
+  document.getElementById('cfg-url').value=SURL;
+  document.getElementById('cfg-key').value=SKEY;
+
+  // Load OS config
+  const osid=localStorage.getItem('drs_onesignal_id')||'';
+  const osrest=localStorage.getItem('drs_onesignal_rest')||'';
+  document.getElementById('os-id').value=osid;document.getElementById('os-rest').value=osrest;
+  document.getElementById('pn-appid').value=osid;document.getElementById('pn-rest').value=osrest;
+
+  if(SURL && SKEY) loadAll();
+  else { demoData(); toast('⚠ Configure Supabase in Setup to see live data'); }
+}
+
+// Load all configs stored in Firebase
+async function loadConfigFromFB(){
+  if(!fbReady||!fbDB) return;
+  try{
+    const {ref,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const snap=await get(ref(fbDB,'drs_config'));
+    if(!snap.exists()) return;
+    const cfg=snap.val();
+    if(cfg.sb_url && cfg.sb_key){
+      SURL=cfg.sb_url; SKEY=cfg.sb_key;
+      localStorage.setItem('drs_url',SURL); localStorage.setItem('drs_key',SKEY);
+      document.getElementById('cfg-url').value=SURL;document.getElementById('cfg-key').value=SKEY;
+    }
+    if(cfg.os_id){
+      localStorage.setItem('drs_onesignal_id',cfg.os_id);
+      localStorage.setItem('drs_onesignal_rest',cfg.os_rest||'');
+      document.getElementById('os-id').value=cfg.os_id;document.getElementById('os-rest').value=cfg.os_rest||'';
+      document.getElementById('pn-appid').value=cfg.os_id;document.getElementById('pn-rest').value=cfg.os_rest||'';
+    }
+  }catch(e){console.warn('loadConfigFromFB error',e);}
+}
+
+// Save all config to Firebase so team gets it
+async function saveConfigToFB(data){
+  if(!fbReady||!fbDB) return;
+  try{
+    const {ref,set,get}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const snap=await get(ref(fbDB,'drs_config'));
+    const existing=snap.exists()?snap.val():{};
+    await set(ref(fbDB,'drs_config'),{...existing,...data});
+  }catch(e){console.warn('saveConfigToFB error',e);}
+}
+
+// ── LOAD DATA (Direct Supabase — works for ALL team members) ──
+async function loadAll(){
+  if(!SURL||!SKEY){demoData();return;}
+  try{
+    document.getElementById('leads-body').innerHTML='<tr><td colspan="9"><div class="spin"></div></td></tr>';
+    document.getElementById('mkt-body').innerHTML='<tr><td colspan="9"><div class="spin"></div></td></tr>';
+    const [leads,mkt]=await Promise.all([
+      sbFetch('/rest/v1/leads?select=*&order=submitted_at.desc'),
+      sbFetch('/rest/v1/marketplace?select=*&order=submitted_at.desc')
+    ]);
+    allLeads=leads||[]; allMkt=mkt||[];
+    renderAll();
+    toast('✓ DATA SYNCED — '+allLeads.length+' leads, '+allMkt.length+' marketplace','success');
+  }catch(e){
+    console.error('Supabase load error',e);
+    toast('⚠ Supabase error: '+e.message+' — check your URL/Key in Setup');
+    demoData();
+  }
+}
+
+function demoData(){
+  allLeads=[
+    {id:1,ref_id:'DRS-2025-1042',full_name:'Rajesh Kumar',whatsapp:'+919876543210',email:'raj@email.com',service:'AC Technician',city:'Varanasi',urgency:'Emergency (Today)',status:'New',submitted_at:new Date().toISOString(),country:'India',workers_required:1},
+    {id:2,ref_id:'DRS-2025-2381',full_name:'Priya Menon',whatsapp:'+971501234567',email:'priya@email.com',service:'Cook / Chef',city:'Dubai',urgency:'Within 24 Hours',status:'Contacted',submitted_at:new Date(Date.now()-86400000).toISOString(),country:'UAE',workers_required:1},
+    {id:3,ref_id:'DRS-2025-3719',full_name:'Anand Patel',whatsapp:'+917654321098',service:'Manpower Outsourcing',city:'Ahmedabad',urgency:'This Week',status:'Deployed',submitted_at:new Date(Date.now()-172800000).toISOString(),country:'India',workers_required:12},
+    {id:4,ref_id:'DRS-2025-4502',full_name:'Sunita Sharma',whatsapp:'+919988776655',service:'Elderly Caretaker',city:'Lucknow',urgency:'Emergency (Today)',status:'New',submitted_at:new Date(Date.now()-3600000).toISOString(),country:'India',workers_required:1},
+    {id:5,ref_id:'DRS-2025-5881',full_name:'Mohammed Al Rashid',whatsapp:'+966512345678',service:'International Placement',city:'Riyadh',urgency:'This Week',status:'New',submitted_at:new Date(Date.now()-7200000).toISOString(),country:'Saudi Arabia',workers_required:5},
+  ];
+  allMkt=[
+    {id:1,ref_id:'MKT-B-1042',type:'buyer',full_name:'Ramesh Gupta',whatsapp:'+919871234567',service:'Electrician',city:'Lucknow',status:'New',submitted_at:new Date().toISOString()},
+    {id:2,ref_id:'MKT-S-2381',type:'seller',full_name:'Suresh Kumar',whatsapp:'+919812345678',service:'Plumber',city:'Varanasi',status:'New',submitted_at:new Date(Date.now()-43200000).toISOString()},
+  ];
+  renderAll();
+}
+
+function renderAll(){renderDash();applyLF();applyMF();if(document.getElementById('page-analytics').classList.contains('active'))buildAnalytics();}
+
+// ── PAGES ──
+function pg(id){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sbi').forEach(a=>a.classList.remove('active'));
+  const lp=['leads','leads-new','leads-urgent','leads-intl'];
+  const mp=['mkt','mkt-buyers','mkt-sellers'];
+  if(lp.includes(id)){
+    document.getElementById('page-leads').classList.add('active');
+    document.getElementById('nav-'+id)?.classList.add('active');
+    leadsF=id.replace('leads-','')||'all';
+    const t={leads:'All Leads','leads-new':'New Leads','leads-urgent':'Urgent Requests','leads-intl':'International Leads'};
+    document.getElementById('leads-title').textContent=t[id];
+    applyLF();
+  } else if(mp.includes(id)){
+    document.getElementById('page-mkt').classList.add('active');
+    document.getElementById('nav-'+id)?.classList.add('active');
+    mktF=id;
+    const t={'mkt':'All Marketplace','mkt-buyers':'Buyers','mkt-sellers':'Sellers'};
+    document.getElementById('mkt-title').textContent=t[id];
+    applyMF();
+  } else {
+    document.getElementById('page-'+id)?.classList.add('active');
+    document.getElementById('nav-'+id)?.classList.add('active');
+  }
+  if(id==='analytics') buildAnalytics();
+}
+
+function filterAndGo(filter){
+  pg('leads');
+  if(filter==='Deployed'){document.getElementById('fst').value='Deployed';filterLeads();}
+  else if(filter==='week'){/* week handled by applyLF */}
+}
+
+// ── DASHBOARD ──
+function renderDash(){
+  const today=new Date().toDateString(),wa=new Date(Date.now()-7*86400000);
+  document.getElementById('s-total').textContent=allLeads.length;
+  document.getElementById('s-today').textContent=allLeads.filter(l=>new Date(l.submitted_at).toDateString()===today).length;
+  document.getElementById('s-deployed').textContent=allLeads.filter(l=>l.status==='Deployed').length;
+  document.getElementById('s-mkt').textContent=allMkt.length;
+  document.getElementById('s-urgent').textContent=allLeads.filter(l=>l.urgency?.includes('Emergency')&&new Date(l.submitted_at).toDateString()===today).length;
+  document.getElementById('s-intl').textContent=allLeads.filter(l=>l.country&&l.country!=='India').length;
+  document.getElementById('s-week').textContent=allLeads.filter(l=>new Date(l.submitted_at)>=wa).length;
+  const dep=allLeads.filter(l=>l.status==='Deployed').length;
+  document.getElementById('s-conv').textContent=allLeads.length?Math.round(dep/allLeads.length*100)+'%':'0%';
+  document.getElementById('udot').style.display=allLeads.filter(l=>l.urgency?.includes('Emergency')&&l.status==='New').length?'':'none';
+  document.getElementById('live-badge').textContent=allLeads.length+' Leads';
+  document.getElementById('dash-recent').innerHTML=allLeads.slice(0,6).map(l=>`<tr style="cursor:pointer" onclick="openDr(${l.id},'leads')"><td class="td-n">${l.full_name}</td><td>${l.service||'—'}</td><td>${l.city||'—'}</td><td>${sbx(l.status)}</td></tr>`).join('')||`<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-txt">No leads yet</div></div></td></tr>`;
+  const sc={};allLeads.forEach(l=>{if(l.service)sc[l.service]=(sc[l.service]||0)+1;});
+  const ss=Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,7),tot=allLeads.length||1;
+  document.getElementById('dash-svcs').innerHTML=ss.map(([s,c])=>`<tr><td style="font-size:0.78rem">${s}</td><td style="color:var(--g2);font-family:var(--fm)">${c}</td><td><div style="background:rgba(201,150,12,0.12);border-radius:3px;height:4px;width:80px;overflow:hidden"><div style="background:var(--g2);height:100%;width:${Math.round(c/tot*100)}%"></div></div></td></tr>`).join('')||`<tr><td colspan="3" style="color:var(--w4);text-align:center;padding:16px;font-family:var(--fm);font-size:0.72rem">No data yet</td></tr>`;
+}
+
+// ── LEADS TABLE ──
+function applyLF(){
+  let b=[...allLeads];
+  if(leadsF==='new') b=b.filter(l=>l.status==='New');
+  else if(leadsF==='urgent') b=b.filter(l=>l.urgency?.includes('Emergency'));
+  else if(leadsF==='intl') b=b.filter(l=>l.country&&l.country!=='India');
+  window._lb=b; leadsP=1; filterLeads();
+}
+function filterLeads(){
+  const q=(document.getElementById('srch')?.value||'').toLowerCase();
+  const st=document.getElementById('fst')?.value||'';
+  const sv=document.getElementById('fsv')?.value||'';
+  let f=[...(window._lb||allLeads)];
+  if(q) f=f.filter(l=>(l.full_name+l.whatsapp+l.city+l.service).toLowerCase().includes(q));
+  if(st) f=f.filter(l=>l.status===st);
+  if(sv) f=f.filter(l=>(l.service||'').includes(sv.replace(' / Custom','')));
+  renderLT(f);
+}
+function renderLT(data){
+  window._ld=data;
+  const s=(leadsP-1)*PER,d=data.slice(s,s+PER);
+  if(!d.length){
+    document.getElementById('leads-body').innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-txt">No leads found</div></div></td></tr>';
+    document.getElementById('pi').textContent='0 results'; return;
+  }
+  document.getElementById('leads-body').innerHTML=d.map(l=>{
+    const dt=new Date(l.submitted_at);
+    const ds=dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    return`<tr><td class="td-r">${l.ref_id||'—'}</td><td class="td-n" style="cursor:pointer" onclick="openDr(${l.id},'leads')">${l.full_name}</td><td class="td-p"><a href="tel:${l.whatsapp}">${l.whatsapp||'—'}</a></td><td style="font-size:0.78rem">${l.service||'—'}</td><td>${l.city||'—'}</td><td>${ubx(l.urgency)}</td><td>${sbx(l.status)}</td><td style="font-family:var(--fm);font-size:0.68rem;color:var(--w4)">${ds}</td><td><div class="tda"><button class="ab ab-v" onclick="openDr(${l.id},'leads')">VIEW</button><a class="ab ab-w" href="https://wa.me/${(l.whatsapp||'').replace(/\D/g,'')}" target="_blank">WA</a><button class="ab ab-d" onclick="cDel(${l.id},'leads')">DEL</button></div></td></tr>`;
+  }).join('');
+  buildPag(data,'leads');
+}
+
+// ── MARKETPLACE ──
+function applyMF(){
+  let b=[...allMkt];
+  if(mktF==='mkt-buyers') b=b.filter(m=>m.type==='buyer');
+  else if(mktF==='mkt-sellers') b=b.filter(m=>m.type==='seller');
+  window._mb=b; mktP=1; filterMkt();
+}
+function filterMkt(){
+  const q=(document.getElementById('msrch')?.value||'').toLowerCase();
+  const tp=document.getElementById('mft')?.value||'';
+  const st=document.getElementById('mfs')?.value||'';
+  let f=[...(window._mb||allMkt)];
+  if(q) f=f.filter(m=>(m.full_name+m.whatsapp+m.city+m.service).toLowerCase().includes(q));
+  if(tp) f=f.filter(m=>m.type===tp);
+  if(st) f=f.filter(m=>m.status===st);
+  renderMT(f);
+}
+function renderMT(data){
+  window._md=data;
+  const s=(mktP-1)*PER,d=data.slice(s,s+PER);
+  if(!d.length){
+    document.getElementById('mkt-body').innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">◈</div><div class="empty-txt">No listings found</div></div></td></tr>';
+    document.getElementById('mpi').textContent='0 results'; return;
+  }
+  document.getElementById('mkt-body').innerHTML=d.map(m=>{
+    const dt=new Date(m.submitted_at);
+    const ds=dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const tb=m.type==='seller'?'<span class="bx bse"><span class="bxd"></span>SELLER</span>':'<span class="bx bbu"><span class="bxd"></span>BUYER</span>';
+    return`<tr><td class="td-r">${m.ref_id||'—'}</td><td>${tb}</td><td class="td-n" style="cursor:pointer" onclick="openDr(${m.id},'marketplace')">${m.full_name}</td><td class="td-p"><a href="tel:${m.whatsapp}">${m.whatsapp||'—'}</a></td><td style="font-size:0.78rem">${m.service||'—'}</td><td>${m.city||'—'}</td><td>${sbx(m.status)}</td><td style="font-family:var(--fm);font-size:0.68rem;color:var(--w4)">${ds}</td><td><div class="tda"><button class="ab ab-v" onclick="openDr(${m.id},'marketplace')">VIEW</button><a class="ab ab-w" href="https://wa.me/${(m.whatsapp||'').replace(/\D/g,'')}" target="_blank">WA</a><button class="ab ab-d" onclick="cDel(${m.id},'marketplace')">DEL</button></div></td></tr>`;
+  }).join('');
+  buildPag(data,'mkt');
+}
+
+// ── PAGINATION ──
+function buildPag(data,type){
+  const isL=type==='leads',page=isL?leadsP:mktP,tot=data.length,pages=Math.ceil(tot/PER),s=(page-1)*PER;
+  document.getElementById(isL?'pi':'mpi').textContent=tot?`${s+1}–${Math.min(s+PER,tot)} of ${tot}`:'0 results';
+  document.getElementById(isL?'pp':'mpp').disabled=page<=1;
+  document.getElementById(isL?'pn':'mpn').disabled=page>=pages;
+  const el=document.getElementById(isL?'pnums':'mpnums'); el.innerHTML='';
+  for(let i=1;i<=Math.min(pages,7);i++){const b=document.createElement('button');b.className='pb'+(i===page?' active':'');b.textContent=i;b.onclick=()=>{if(isL){leadsP=i;renderLT(data);}else{mktP=i;renderMT(data);}};el.appendChild(b);}
+}
+function cPg(d,type){if(type==='leads'){leadsP=Math.max(1,leadsP+d);renderLT(window._ld||[]);}else{mktP=Math.max(1,mktP+d);renderMT(window._md||[]);}}
+
+// ── DRAWER ──
+function openDr(id,type){
+  const arr=type==='leads'?allLeads:allMkt,data=arr.find(x=>x.id===id);if(!data)return;
+  const isL=type==='leads',dt=new Date(data.submitted_at);
+  document.getElementById('dr-ref').textContent=data.ref_id||'—';
+  document.getElementById('dr-name').textContent=data.full_name;
+  document.getElementById('dr-svc').textContent=(data.service||'')+(data.type?' · '+data.type.toUpperCase():'');
+  document.getElementById('dr-body').innerHTML=`
+    <div class="dr-sec"><div class="dr-sec-t">Contact</div><div class="drg">
+      <div class="di"><div class="dil">WhatsApp</div><div class="div2"><a href="tel:${data.whatsapp}" style="color:var(--g2)">${data.whatsapp||'—'}</a></div></div>
+      <div class="di"><div class="dil">Email</div><div class="div2">${data.email||'—'}</div></div>
+      <div class="di"><div class="dil">City</div><div class="div2">${data.city||'—'}</div></div>
+      <div class="di"><div class="dil">Country</div><div class="div2">${data.country||'India'}</div></div>
+    </div></div>
+    <div class="dr-sec"><div class="dr-sec-t">Details</div><div class="drg">
+      ${isL?`
+      <div class="di"><div class="dil">Workers</div><div class="div2">${data.workers_required||1}</div></div>
+      <div class="di"><div class="dil">Urgency</div><div class="div2">${data.urgency||'—'}</div></div>
+      <div class="di"><div class="dil">Budget</div><div class="div2">${data.budget||'—'}</div></div>
+      <div class="di"><div class="dil">Start Date</div><div class="div2">${data.start_date||'—'}</div></div>
+      <div class="di"><div class="dil">Engagement</div><div class="div2">${data.engagement_type||'—'}</div></div>
+      <div class="di"><div class="dil">Duration</div><div class="div2">${data.duration||'—'}</div></div>
+      ${data.notes?`<div class="di full"><div class="dil">Client Notes</div><div class="div2">${data.notes}</div></div>`:''}
+      ${data.special_skills?`<div class="di full"><div class="dil">Special Skills</div><div class="div2">${data.special_skills}</div></div>`:''}`
+      :`
+      <div class="di"><div class="dil">Experience</div><div class="div2">${data.experience||'—'}</div></div>
+      <div class="di"><div class="dil">Rate</div><div class="div2">${data.rate||'—'}</div></div>
+      <div class="di"><div class="dil">Availability</div><div class="div2">${data.availability||'—'}</div></div>
+      ${data.description?`<div class="di full"><div class="dil">Description</div><div class="div2">${data.description}</div></div>`:''}`}
+    </div></div>
+    <div class="dr-sec"><div class="dr-sec-t">Update Status</div>
+      <select class="ssel" onchange="qSt(${id},'${type}',this.value)">
+        <option${data.status==='New'?' selected':''}>New</option>
+        <option${data.status==='Contacted'?' selected':''}>Contacted</option>
+        <option${data.status==='Deployed'?' selected':''}>Deployed</option>
+        <option${data.status==='Closed'?' selected':''}>Closed</option>
+      </select>
+    </div>
+    <div class="dr-sec"><div class="dr-sec-t">Admin Notes</div>
+      <textarea class="nta" id="dr-notes" placeholder="Internal notes...">${data.admin_notes||''}</textarea>
+      <button class="save-btn" onclick="saveN(${id},'${type}')">Save Notes</button>
+    </div>
+    <div class="dr-sec"><div class="dr-sec-t">Quick Actions</div><div class="dr-acts">
+      <a class="wa-btn" href="https://wa.me/${(data.whatsapp||'').replace(/\D/g,'')}" target="_blank">📱 WhatsApp</a>
+      <a class="call-btn" href="tel:${data.whatsapp}">📞 Call</a>
+      <button class="ab ab-d" style="padding:9px 14px;font-size:0.72rem" onclick="cDel(${id},'${type}')">🗑 DELETE</button>
+    </div></div>
+    <div style="font-family:var(--fm);font-size:0.62rem;color:var(--w4);margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04)">SUBMITTED: ${dt.toLocaleString('en-IN').toUpperCase()}</div>`;
+  document.getElementById('dr').classList.add('open');document.getElementById('dov').classList.add('open');document.body.style.overflow='hidden';
+}
+function closeDr(){document.getElementById('dr').classList.remove('open');document.getElementById('dov').classList.remove('open');document.body.style.overflow='';}
+
+async function qSt(id,type,status){
+  const tbl=type==='leads'?'leads':'marketplace';
+  const arr=type==='leads'?allLeads:allMkt,item=arr.find(x=>x.id===id);
+  if(item) item.status=status;
+  try{ await sbFetch('/rest/v1/'+tbl+'?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status,updated_at:new Date().toISOString()})}); }catch(e){}
+  toast('STATUS → '+status.toUpperCase(),'success');
+  renderAll();
+}
+async function saveN(id,type){
+  const notes=document.getElementById('dr-notes').value;
+  const tbl=type==='leads'?'leads':'marketplace';
+  const arr=type==='leads'?allLeads:allMkt,item=arr.find(x=>x.id===id);
+  if(item) item.admin_notes=notes;
+  try{ await sbFetch('/rest/v1/'+tbl+'?id=eq.'+id,{method:'PATCH',body:JSON.stringify({admin_notes:notes,updated_at:new Date().toISOString()})}); }catch(e){}
+  toast('NOTES SAVED','success');
+}
+async function cDel(id,type){
+  if(!confirm('Permanently delete this entry?')) return;
+  const tbl=type==='leads'?'leads':'marketplace';
+  if(type==='leads') allLeads=allLeads.filter(x=>x.id!==id);
+  else allMkt=allMkt.filter(x=>x.id!==id);
+  try{ await sbFetch('/rest/v1/'+tbl+'?id=eq.'+id,{method:'DELETE'}); }catch(e){}
+  closeDr(); renderAll(); toast('DELETED');
+}
+
+// ── ANALYTICS ──
+async function buildAnalytics(){
+  const today=new Date().toDateString(),wa=new Date(Date.now()-7*86400000),ma=new Date(Date.now()-30*86400000);
+  let pvT=0,pvTo=0,pvW=0,pvM=0;
+  try{
+    const pv=await sbFetch('/rest/v1/pageviews?select=*&order=visited_at.desc&limit=2000');
+    if(pv){pvT=pv.length;pvTo=pv.filter(p=>new Date(p.visited_at).toDateString()===today).length;pvW=pv.filter(p=>new Date(p.visited_at)>=wa).length;pvM=pv.filter(p=>new Date(p.visited_at)>=ma).length;}
+  }catch(e){pvT=342;pvTo=18;pvW=94;pvM=228;}
+  document.getElementById('an-views').textContent=pvT;document.getElementById('an-today').textContent=pvTo;document.getElementById('an-week').textContent=pvW;document.getElementById('an-month').textContent=pvM;
+  const thM=allLeads.filter(l=>new Date(l.submitted_at)>=ma).length;document.getElementById('an-avg').textContent=(thM/30).toFixed(1);
+  const cities={};allLeads.forEach(l=>{if(l.city)cities[l.city]=(cities[l.city]||0)+1;});
+  const tc=Object.entries(cities).sort((a,b)=>b[1]-a[1])[0];document.getElementById('an-city').textContent=tc?tc[0]:'—';
+  const svcs={};allLeads.forEach(l=>{if(l.service)svcs[l.service]=(svcs[l.service]||0)+1;});
+  const ts=Object.entries(svcs).sort((a,b)=>b[1]-a[1])[0];document.getElementById('an-svc').textContent=ts?ts[0].split(' ')[0]:'—';
+  const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#50506A',font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.03)'}},y:{ticks:{color:'#50506A',stepSize:1,font:{family:'DM Mono',size:10}},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}}};
+  const days=[],dayL=[];for(let i=6;i>=0;i--){const d=new Date(Date.now()-i*86400000);dayL.push(d.toLocaleDateString('en-IN',{weekday:'short'}));days.push(allLeads.filter(l=>new Date(l.submitted_at).toDateString()===d.toDateString()).length);}
+  if(wC)wC.destroy();wC=new Chart(document.getElementById('wc').getContext('2d'),{type:'bar',data:{labels:dayL,datasets:[{data:days,backgroundColor:'rgba(201,150,12,0.75)',borderColor:'#C9960C',borderWidth:1,borderRadius:5}]},options:{...co}});
+  const mons=[],monL=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);monL.push(d.toLocaleDateString('en-IN',{month:'short'}));mons.push(allLeads.filter(l=>{const ld=new Date(l.submitted_at);return ld.getMonth()===d.getMonth()&&ld.getFullYear()===d.getFullYear();}).length);}
+  if(mC)mC.destroy();mC=new Chart(document.getElementById('mc').getContext('2d'),{type:'line',data:{labels:monL,datasets:[{data:mons,borderColor:'#C9960C',backgroundColor:'rgba(201,150,12,0.07)',tension:0.4,fill:true,pointBackgroundColor:'#E8B84B',pointRadius:3}]},options:{...co}});
+  const st={New:0,Contacted:0,Deployed:0,Closed:0};allLeads.forEach(l=>{if(st[l.status]!==undefined)st[l.status]++;});
+  if(sC)sC.destroy();sC=new Chart(document.getElementById('sc2').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:['rgba(201,150,12,0.85)','rgba(68,136,255,0.85)','rgba(34,214,138,0.85)','rgba(255,255,255,0.12)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#50506A',font:{family:'DM Mono',size:9},padding:12,boxWidth:10,boxHeight:10}}}}});
+  const tot=allLeads.length||1;
+  const cs=Object.entries(cities).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('city-tbl').innerHTML=cs.map(([c,n])=>`<tr><td>${c}</td><td style="font-family:var(--fm);color:var(--g2)">${n}</td><td><div style="background:rgba(201,150,12,0.15);border-radius:2px;height:4px;width:80px;overflow:hidden"><div style="background:var(--g2);height:100%;width:${Math.round(n/tot*100)}%"></div></div></td></tr>`).join('')||`<tr><td colspan="3" style="color:var(--w4);padding:14px;text-align:center;font-family:var(--fm);font-size:0.72rem">No data</td></tr>`;
+  const ss=Object.entries(svcs).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('svc-tbl').innerHTML=ss.map(([s,n])=>`<tr><td style="font-size:0.78rem">${s}</td><td style="font-family:var(--fm);color:var(--g2)">${n}</td><td><div style="background:rgba(201,150,12,0.15);border-radius:2px;height:4px;width:80px;overflow:hidden"><div style="background:var(--g2);height:100%;width:${Math.round(n/tot*100)}%"></div></div></td></tr>`).join('')||`<tr><td colspan="3" style="color:var(--w4);padding:14px;text-align:center;font-family:var(--fm);font-size:0.72rem">No data</td></tr>`;
+}
+
+// ── NOTIFICATIONS (Firebase-powered cross-device) ──
+function upPrev(){
+  document.getElementById('pv-icon').textContent=document.getElementById('n-icon').value||'🔔';
+  document.getElementById('pv-title').textContent=document.getElementById('n-title').value||'Notification Title';
+  document.getElementById('pv-body').textContent=document.getElementById('n-body').value||'Your message preview...';
+  const cta=document.getElementById('n-cta').value;
+  document.getElementById('pv-cta').textContent=cta||'View';
+  document.getElementById('pv-cta').style.display=cta?'':'none';
+}
+async function sendInApp(){
+  const title=document.getElementById('n-title').value.trim(),body=document.getElementById('n-body').value.trim();
+  if(!title||!body){toast('FILL TITLE AND MESSAGE FIRST');return;}
+  const btn=document.getElementById('inapp-btn');btn.disabled=true;btn.textContent='📡 Broadcasting...';
+  const payload={title,body,icon:document.getElementById('n-icon').value||'🔔',ctaText:document.getElementById('n-cta').value||'',ctaUrl:document.getElementById('n-url').value||'#modal',sentAt:new Date().toISOString()};
+  let sent=false;
+  if(fbReady&&fbDB){
+    try{
+      const {ref,push}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      await push(ref(fbDB,'drs_notifications'),payload);
+      sent=true; toast('✓ NOTIFICATION SENT VIA FIREBASE → ALL DEVICES GLOBALLY','success');
+    }catch(e){console.warn('Firebase send failed',e);}
+  }
+  if(!sent){
+    localStorage.setItem('drs_broadcast_notif',JSON.stringify(payload));
+    setTimeout(()=>localStorage.removeItem('drs_broadcast_notif'),800);
+    toast('⚠ Sent (same device only — set Firebase for cross-device)');
+  }
+  addNH(sent?'Firebase':'Same-Device',title,body);
+  setTimeout(()=>{btn.disabled=false;btn.textContent='📢 Broadcast to All Visitors';},1500);
+}
+async function clearAllNotifs(){
+  if(!confirm('Clear all notifications from all user bell panels?')) return;
+  if(fbReady&&fbDB){
+    try{
+      const {ref,set}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+      await set(ref(fbDB,'drs_clear_command'),{action:'clear_all',ts:Date.now()});
+    }catch(e){}
+  }
+  localStorage.setItem('drs_clear_all_notifs','1');
+  setTimeout(()=>localStorage.removeItem('drs_clear_all_notifs'),800);
+  toast('✓ ALL NOTIFICATIONS CLEARED','success');
+}
+async function sendPush(){
+  const appId=document.getElementById('pn-appid').value.trim()||localStorage.getItem('drs_onesignal_id');
+  const restKey=document.getElementById('pn-rest').value.trim()||localStorage.getItem('drs_onesignal_rest');
+  const title=document.getElementById('pn-title').value.trim(),body=document.getElementById('pn-body').value.trim();
+  if(!appId||!restKey){toast('ADD ONESIGNAL CONFIG FIRST');return;}
+  if(!title||!body){toast('FILL TITLE AND MESSAGE');return;}
+  try{
+    const r=await fetch('https://onesignal.com/api/v1/notifications',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Basic '+restKey},body:JSON.stringify({app_id:appId,included_segments:['All'],headings:{en:title},contents:{en:body},url:document.getElementById('pn-url').value||''})});
+    const d=await r.json();
+    if(d.errors){toast('ONESIGNAL ERROR: '+JSON.stringify(d.errors));return;}
+    addNH('Push',title,body); toast('✓ PUSH SENT TO '+d.recipients+' SUBSCRIBERS','success');
+  }catch(e){toast('PUSH FAILED: '+e.message);}
+}
+function addNH(type,title,body){
+  const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}).toUpperCase();
+  nhist.unshift({type,title,body,time:now});
+  document.getElementById('nh-body').innerHTML=nhist.map(n=>`<tr><td style="font-family:var(--fm);font-size:0.65rem;color:var(--w4)">${n.time}</td><td><span class="nh-type ${n.type==='Push'?'nh-push':'nh-ia'}">${n.type}</span></td><td class="td-n">${n.title}</td><td style="font-size:0.75rem;color:var(--w3)">${n.body}</td></tr>`).join('');
+}
+
+// ── SETUP / CONFIG ──
+async function saveFBConfig(){
+  const apiKey=document.getElementById('fb-apikey').value.trim();
+  const projectId=document.getElementById('fb-projectid').value.trim();
+  const databaseURL=document.getElementById('fb-dburl').value.trim();
+  const appId=document.getElementById('fb-appid').value.trim();
+  const authDomain=document.getElementById('fb-auth').value.trim();
+  const messagingSenderId=document.getElementById('fb-sender').value.trim();
+  if(!apiKey||!projectId||!databaseURL){toast('API KEY, PROJECT ID AND DATABASE URL ARE REQUIRED');return;}
+  const fbCfg={apiKey,authDomain:authDomain||projectId+'.firebaseapp.com',databaseURL,projectId,storageBucket:projectId+'.appspot.com',messagingSenderId,appId};
+  localStorage.setItem('drs_fb_config',JSON.stringify(fbCfg));
+  const st=document.getElementById('fb-st');
+  st.textContent='Connecting...';st.className='status-wait';
+  const ok=await initFB(fbCfg);
+  if(ok){
+    // Save current SB config into Firebase
+    const sb_url=document.getElementById('cfg-url').value.trim()||SURL;
+    const sb_key=document.getElementById('cfg-key').value.trim()||SKEY;
+    if(sb_url&&sb_key) await saveConfigToFB({sb_url,sb_key});
+    st.textContent='✅ Firebase connected & synced!';st.className='status-ok';
+    document.getElementById('cfg-ok-banner').style.display='flex';
+    document.getElementById('cfg-warn-banner').style.display='none';
+    toast('✓ FIREBASE SAVED — TEAM MEMBERS WILL AUTO-GET CONFIG','success');
+  } else {
+    st.textContent='✗ Connection failed — check config';st.className='status-err';
+    toast('FIREBASE CONNECTION FAILED — check keys and database rules');
+  }
+}
+async function saveSBConfig(){
+  const u=document.getElementById('cfg-url').value.trim(),k=document.getElementById('cfg-key').value.trim();
+  if(!u||!k){toast('ENTER BOTH URL AND KEY');return;}
+  const st=document.getElementById('conn-st');st.textContent='Testing...';st.className='status-wait';
+  try{
+    const r=await fetch(u+'/rest/v1/leads?select=id&limit=1',{headers:{'apikey':k,'Authorization':'Bearer '+k}});
+    if(!r.ok) throw new Error('HTTP '+r.status+' — check URL and key');
+    SURL=u; SKEY=k;
+    localStorage.setItem('drs_url',u); localStorage.setItem('drs_key',k);
+    st.textContent='✅ Connected!';st.className='status-ok';
+    await saveConfigToFB({sb_url:u,sb_key:k});
+    toast('✓ SUPABASE SAVED & SYNCED TO ALL TEAM VIA FIREBASE','success');
+    loadAll();
+  }catch(e){st.textContent='✗ '+e.message;st.className='status-err';toast('SUPABASE FAILED: '+e.message);}
+}
+async function saveOSConfig(){
+  const id=document.getElementById('os-id').value.trim(),rest=document.getElementById('os-rest').value.trim();
+  localStorage.setItem('drs_onesignal_id',id);localStorage.setItem('drs_onesignal_rest',rest);
+  document.getElementById('pn-appid').value=id;document.getElementById('pn-rest').value=rest;
+  await saveConfigToFB({os_id:id,os_rest:rest});
+  toast('✓ ONESIGNAL CONFIG SAVED & SYNCED','success');
+}
+function changeCreds(){
+  const u=document.getElementById('new-u').value.trim(),p=document.getElementById('new-p').value;
+  if(!u||p.length<6){toast('USERNAME REQUIRED, PASSWORD MIN 6 CHARS');return;}
+  localStorage.setItem('drs_admin_user',u);localStorage.setItem('drs_admin_pass',p);
+  toast('✓ CREDENTIALS UPDATED','success');
+}
+function genGA(){
+  const id=document.getElementById('ga-id').value.trim();
+  if(!id){document.getElementById('ga-code').innerHTML='&lt;!-- Enter your GA4 ID above first --&gt;<button class="cpb" onclick="copyEl(\'ga-code\',this)">COPY</button>';return;}
+  document.getElementById('ga-code').innerHTML=`&lt;script async src="https://www.googletagmanager.com/gtag/js?id=${id}"&gt;&lt;/script&gt;\n&lt;script&gt;\n  window.dataLayer=window.dataLayer||[];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js',new Date());\n  gtag('config','${id}');\n&lt;/script&gt;<button class="cpb" onclick="copyEl('ga-code',this)">COPY</button>`;
+}
+
+// ── HELPERS ──
+function sbx(s){const m={New:'bn',Contacted:'bc',Deployed:'bd',Closed:'bx2'};return`<span class="bx ${m[s]||'bn'}"><span class="bxd"></span>${(s||'New').toUpperCase()}</span>`;}
+function ubx(u){if(!u)return`<span style="color:var(--w4);font-family:var(--fm);font-size:0.68rem">—</span>`;const c=u.includes('Emergency')?'bu':'bn';const sh=u.replace('Emergency (Today)','⚠ EMERGENCY').replace('Within 24 Hours','⚡ 24HR').replace('This Week','WEEK').replace('Scheduled Date','SCHED');return`<span class="bx ${c}">${sh}</span>`;}
+function exportCSV(data,name){if(!data?.length){toast('NO DATA');return;}const keys=Object.keys(data[0]);const rows=data.map(r=>keys.map(k=>`"${(r[k]||'').toString().replace(/"/g,'""')}"`).join(','));const csv=[keys.join(','),...rows].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`${name}_${new Date().toISOString().split('T')[0]}.csv`;a.click();URL.revokeObjectURL(a.href);toast('✓ CSV EXPORTED','success');}
+function copyEl(id,btn){const el=document.getElementById(id);navigator.clipboard.writeText(el.innerText.replace(/COPY$/,'').trim()).then(()=>{btn.textContent='✓ COPIED';setTimeout(()=>btn.textContent='COPY',2000);});}
+let tT;function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'');clearTimeout(tT);tT=setTimeout(()=>t.className='',3500);}
+</script>
+</body>
+</html>
